@@ -29,3 +29,7 @@ class OpenRouterError(Exception):
 
 class CitationError(Exception):
     """Raised when citation generation fails."""
+
+
+class RetryError(Exception):
+    """Raised when an operation exceeds retry attempts."""
