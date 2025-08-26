@@ -9,12 +9,15 @@ from typing import Any, Dict, List, Tuple
 from pinecone import Pinecone, ServerlessSpec  # type: ignore[import-not-found]
 
 from .exceptions import IndexingError
+from .monitoring import UsageMonitor
 
 
 class PineconeIndex:
     """Async wrapper for a Pinecone index."""
 
-    def __init__(self, *, dimension: int = 384) -> None:
+    def __init__(
+        self, *, dimension: int = 384, monitor: UsageMonitor | None = None
+    ) -> None:
         api_key = os.getenv("PINECONE_API_KEY")
         name = os.getenv("PINECONE_INDEX_NAME")
         if not api_key or not name:
@@ -25,6 +28,9 @@ class PineconeIndex:
                 spec = ServerlessSpec(cloud="aws", region="us-west-2")
                 pc.create_index(name, dimension=dimension, metric="cosine", spec=spec)
             self.index = pc.Index(name)
+            self.monitor = monitor
+            self.upsert_cost = float(os.getenv("PINECONE_UPSERT_COST", "0"))
+            self.query_cost = float(os.getenv("PINECONE_QUERY_COST", "0"))
         except Exception as exc:  # noqa: BLE001
             raise IndexingError("failed to initialize Pinecone") from exc
 
@@ -42,6 +48,9 @@ class PineconeIndex:
                 await asyncio.wait_for(
                     asyncio.to_thread(self.index.upsert, vectors=items), timeout=10
                 )
+                if self.monitor:
+                    cost = self.upsert_cost * len(items)
+                    await self.monitor.record("pinecone", cost)
                 return
             except Exception as exc:  # noqa: BLE001
                 if attempt == retries - 1:
@@ -69,6 +78,8 @@ class PineconeIndex:
                     ),
                     timeout=10,
                 )
+                if self.monitor:
+                    await self.monitor.record("pinecone", self.query_cost)
                 return result.get("matches", [])
             except Exception as exc:  # noqa: BLE001
                 if attempt == retries - 1:

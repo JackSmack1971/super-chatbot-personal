@@ -17,3 +17,11 @@ class IndexingError(Exception):
 
 class ChatError(Exception):
     """Raised for chat interface issues in Dense X Retrieval."""
+
+
+class MonitoringError(Exception):
+    """Raised when cost monitoring fails or budget exceeded."""
+
+
+class OpenRouterError(Exception):
+    """Raised when OpenRouter API calls fail."""
