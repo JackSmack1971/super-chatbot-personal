@@ -52,3 +52,12 @@ async def test_async_retry_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(retry.asyncio, "sleep", fake_sleep)
     with pytest.raises(RetryError):
         await retry.async_retry(never, max_attempts=2, timeout=0.01)
+
+
+@pytest.mark.asyncio
+async def test_async_retry_invalid_params() -> None:
+    async def noop() -> None:
+        pass
+
+    with pytest.raises(RetryError):
+        await retry.async_retry(noop, max_attempts=0)
