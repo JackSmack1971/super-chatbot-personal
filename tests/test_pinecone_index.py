@@ -70,3 +70,12 @@ async def test_upsert_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
     index = PineconeIndex()
     with pytest.raises(IndexingError):
         await index.upsert([])
+
+
+@pytest.mark.asyncio
+async def test_query_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINECONE_API_KEY", "k")
+    monkeypatch.setenv("PINECONE_INDEX_NAME", "i")
+    index = PineconeIndex()
+    with pytest.raises(IndexingError):
+        await index.query([])
