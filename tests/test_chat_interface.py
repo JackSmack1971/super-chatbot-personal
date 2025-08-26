@@ -1,6 +1,6 @@
 import sys
-from pathlib import Path
 import types
+from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -30,19 +30,53 @@ class StubIndex:
         return [{"metadata": {"text": "response"}}]
 
 
-class FailingEmbedder:
+class FlakyEmbedder:
+    def __init__(self) -> None:
+        self.calls = 0
+
     async def embed(self, texts):
+        self.calls += 1
+        if self.calls < 2:
+            raise RuntimeError("boom")
+        return [[0.0]]
+
+
+class FailingEmbedder:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def embed(self, texts):
+        self.calls += 1
         raise RuntimeError("boom")
 
 
-class FailingIndex:
+class FlakyIndex:
+    def __init__(self) -> None:
+        self.calls = 0
+
     async def query(self, vector, top_k=1):
+        self.calls += 1
+        if self.calls < 2:
+            raise RuntimeError("boom")
+        return [{"metadata": {"text": "response"}}]
+
+
+class FailingIndex:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def query(self, vector, top_k=1):
+        self.calls += 1
         raise RuntimeError("boom")
 
 
 async def _run_handle_message(msg: str) -> str:
     build_interface, handle_message, _ = _import_modules()
-    return await handle_message(msg, embedder=StubEmbedder(), index=StubIndex())
+    return await handle_message(
+        msg,
+        embedder=StubEmbedder(),
+        index=StubIndex(),
+    )
 
 
 def test_build_interface_type() -> None:
@@ -70,12 +104,34 @@ async def test_handle_message_invalid() -> None:
 @pytest.mark.asyncio
 async def test_handle_message_embed_failure() -> None:
     _, handle_message, ChatError = _import_modules()
+    embedder = FailingEmbedder()
     with pytest.raises(ChatError, match="embedding failed"):
-        await handle_message("hi", embedder=FailingEmbedder(), index=StubIndex())
+        await handle_message("hi", embedder=embedder, index=StubIndex())
+    assert embedder.calls == 3
 
 
 @pytest.mark.asyncio
 async def test_handle_message_index_failure() -> None:
     _, handle_message, ChatError = _import_modules()
+    index = FailingIndex()
     with pytest.raises(ChatError, match="index query failed"):
-        await handle_message("hi", embedder=StubEmbedder(), index=FailingIndex())
+        await handle_message("hi", embedder=StubEmbedder(), index=index)
+    assert index.calls == 3
+
+
+@pytest.mark.asyncio
+async def test_handle_message_embed_retry_success() -> None:
+    _, handle_message, _ = _import_modules()
+    embedder = FlakyEmbedder()
+    result = await handle_message("hi", embedder=embedder, index=StubIndex())
+    assert result == "response"
+    assert embedder.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_handle_message_index_retry_success() -> None:
+    _, handle_message, _ = _import_modules()
+    index = FlakyIndex()
+    result = await handle_message("hi", embedder=StubEmbedder(), index=index)
+    assert result == "response"
+    assert index.calls == 2
