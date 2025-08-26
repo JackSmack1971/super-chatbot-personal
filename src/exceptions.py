@@ -33,3 +33,7 @@ class CitationError(Exception):
 
 class RetryError(Exception):
     """Raised when an operation exceeds retry attempts."""
+
+
+class InitializationError(Exception):
+    """Raised when application startup fails."""
