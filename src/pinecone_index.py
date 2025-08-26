@@ -10,6 +10,7 @@ from pinecone import Pinecone, ServerlessSpec  # type: ignore[import-not-found]
 
 from .exceptions import IndexingError
 from .monitoring import UsageMonitor
+from .utils.retry import async_retry
 
 
 class PineconeIndex:
@@ -43,19 +44,20 @@ class PineconeIndex:
         """Upsert vectors into Pinecone with retry logic."""
         if not items:
             raise IndexingError("no items provided")
-        for attempt in range(retries):
-            try:
-                await asyncio.wait_for(
-                    asyncio.to_thread(self.index.upsert, vectors=items), timeout=10
-                )
-                if self.monitor:
-                    cost = self.upsert_cost * len(items)
-                    await self.monitor.record("pinecone", cost)
-                return
-            except Exception as exc:  # noqa: BLE001
-                if attempt == retries - 1:
-                    raise IndexingError("upsert failed") from exc
-                await asyncio.sleep(2**attempt)
+
+        async def _upsert() -> None:
+            await asyncio.to_thread(self.index.upsert, vectors=items)
+
+        try:
+            await async_retry(
+                _upsert, max_attempts=retries, timeout=10, error_cls=IndexingError
+            )
+        except IndexingError as exc:
+            raise IndexingError("upsert failed") from exc
+
+        if self.monitor:
+            cost = self.upsert_cost * len(items)
+            await self.monitor.record("pinecone", cost)
 
     async def query(
         self,
@@ -67,22 +69,22 @@ class PineconeIndex:
         """Query Pinecone index for Dense X Retrieval."""
         if not vector:
             raise IndexingError("vector required")
-        for attempt in range(retries):
-            try:
-                result = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        self.index.query,
-                        vector=vector,
-                        top_k=top_k,
-                        include_metadata=True,
-                    ),
-                    timeout=10,
-                )
-                if self.monitor:
-                    await self.monitor.record("pinecone", self.query_cost)
-                return result.get("matches", [])
-            except Exception as exc:  # noqa: BLE001
-                if attempt == retries - 1:
-                    raise IndexingError("query failed") from exc
-                await asyncio.sleep(2**attempt)
-        raise IndexingError("query failed")
+
+        async def _query() -> Dict[str, Any]:
+            return await asyncio.to_thread(
+                self.index.query,
+                vector=vector,
+                top_k=top_k,
+                include_metadata=True,
+            )
+
+        try:
+            result = await async_retry(
+                _query, max_attempts=retries, timeout=10, error_cls=IndexingError
+            )
+        except IndexingError as exc:
+            raise IndexingError("query failed") from exc
+
+        if self.monitor:
+            await self.monitor.record("pinecone", self.query_cost)
+        return result.get("matches", [])

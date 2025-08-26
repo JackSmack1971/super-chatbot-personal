@@ -24,6 +24,18 @@ class DummyClient:
         return DummyResponse()
 
 
+class FlakyClient(DummyClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    async def _create(self, model: str, input: str) -> DummyResponse:
+        self.calls += 1
+        if self.calls < 3:
+            raise RuntimeError("fail")
+        return DummyResponse()
+
+
 def dummy_async_openai(*args, **kwargs):
     return DummyClient()
 
@@ -54,3 +66,22 @@ async def test_openrouter_client_invalid_prompt(
     client = OpenRouterClient()
     with pytest.raises(OpenRouterError):
         await client.complete("")
+
+
+@pytest.mark.asyncio
+async def test_openrouter_client_retries(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "key")
+    flaky = FlakyClient()
+    import src.openrouter_client as orc
+
+    monkeypatch.setattr(orc, "AsyncOpenAI", lambda **kwargs: flaky)
+    from src.utils import retry as retry_module
+
+    async def fake_sleep(_: float) -> None:
+        pass
+
+    monkeypatch.setattr(retry_module.asyncio, "sleep", fake_sleep)
+    client = OpenRouterClient()
+    result = await client.complete("hello", retries=3)
+    assert result == "hi"
+    assert flaky.calls == 3
