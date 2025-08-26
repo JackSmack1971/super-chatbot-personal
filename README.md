@@ -28,15 +28,15 @@ technical debt and code duplication.
 - Never hardcode API keys; load them from environment variables.
 - Write tests for all new code and aim for at least 80% coverage while mocking
   external services.
-- Run `python scripts/check_code_quality.py` and `pytest tests/ -v` before
+- Run `python scripts/check_code_quality.py` and `pytest --cov=src --cov-fail-under=80 tests/ -v` before
   committing.
 - Use Conventional Commits for messages and ensure branches are up to date with
   `main`.
 
 ## Testing
-Run unit tests with coverage:
+Run unit tests with coverage enforcement:
 ```bash
-pytest --cov=src tests/
+pytest --cov=src --cov-fail-under=80 tests/
 ```
 Run code quality checks:
 ```bash
