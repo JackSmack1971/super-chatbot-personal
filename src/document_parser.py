@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Awaitable, Callable, Dict
 
@@ -35,16 +36,43 @@ _PARSERS: Dict[str, Callable[[Path], Awaitable[str]]] = {
 }
 
 
-async def parse_document(path: Path) -> str:
-    """Parse a document into text for Dense X Retrieval."""
+def _resolve_base_dir(base_dir: Path | None) -> Path:
+    """Resolve the base directory from an argument or environment variable."""
+    env_base = os.getenv("DOCUMENT_BASE_DIR")
+    base = Path(env_base) if env_base else base_dir
+    return (base or Path(__file__).resolve().parents[1]).resolve()
+
+
+def _validate_path(path: Path, base_dir: Path) -> Path:
+    """Ensure ``path`` is within ``base_dir`` and return its resolved path."""
+    resolved_path = path.resolve()
+    base = base_dir.resolve()
+    if base not in resolved_path.parents and resolved_path != base:
+        raise DocumentParsingError("access outside base directory is forbidden")
+    return resolved_path
+
+
+async def parse_document(path: Path, base_dir: Path | None = None) -> str:
+    """Parse ``path`` into text ensuring it resides under ``base_dir``.
+
+    Args:
+        path: The document to parse.
+        base_dir: Optional directory that ``path`` must reside in. Defaults to the
+            project root or ``DOCUMENT_BASE_DIR`` environment variable.
+
+    Returns:
+        Parsed text content.
+    """
     if not isinstance(path, Path):
         raise DocumentParsingError("path must be a pathlib.Path instance")
-    if not path.exists() or not path.is_file():
+    base = _resolve_base_dir(base_dir)
+    resolved_path = _validate_path(path, base)
+    if not resolved_path.exists() or not resolved_path.is_file():
         raise DocumentParsingError("file does not exist")
-    parser = _PARSERS.get(path.suffix.lower())
+    parser = _PARSERS.get(resolved_path.suffix.lower())
     if parser is None:
         raise DocumentParsingError("unsupported file type")
     try:
-        return await parser(path)
+        return await parser(resolved_path)
     except Exception as exc:  # noqa: BLE001
         raise DocumentParsingError("failed to parse document") from exc
