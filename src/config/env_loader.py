@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Dict, Iterable
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # type: ignore[import-not-found]
 
 
 class ConfigurationError(Exception):

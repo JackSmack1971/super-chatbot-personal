@@ -4,6 +4,8 @@ sentence-transformers>=2.2.2
 openai>=1.0.0
 langchain>=0.1.0
 python-dotenv>=1.0.0
+aiofiles>=23.1.0
+PyPDF2>=3.0.0
 
 # Testing and code quality tools
 pytest>=7.0
