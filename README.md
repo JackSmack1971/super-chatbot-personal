@@ -42,3 +42,8 @@ Run code quality checks:
 ```bash
 python scripts/check_code_quality.py
 ```
+
+## Documentation
+See [docs/README.md](docs/README.md) for detailed architecture, research background,
+and security guidelines. For additional context, consult the
+[Dense X Retrieval papers](https://arxiv.org/search/?query=Dense+X+Retrieval&searchtype=all).
