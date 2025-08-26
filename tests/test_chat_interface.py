@@ -30,6 +30,16 @@ class StubIndex:
         return [{"metadata": {"text": "response"}}]
 
 
+class FailingEmbedder:
+    async def embed(self, texts):
+        raise RuntimeError("boom")
+
+
+class FailingIndex:
+    async def query(self, vector, top_k=1):
+        raise RuntimeError("boom")
+
+
 async def _run_handle_message(msg: str) -> str:
     build_interface, handle_message, _ = _import_modules()
     return await handle_message(msg, embedder=StubEmbedder(), index=StubIndex())
@@ -55,3 +65,17 @@ async def test_handle_message_invalid() -> None:
     _, handle_message, ChatError = _import_modules()
     with pytest.raises(ChatError):
         await handle_message("", embedder=StubEmbedder(), index=StubIndex())
+
+
+@pytest.mark.asyncio
+async def test_handle_message_embed_failure() -> None:
+    _, handle_message, ChatError = _import_modules()
+    with pytest.raises(ChatError, match="embedding failed"):
+        await handle_message("hi", embedder=FailingEmbedder(), index=StubIndex())
+
+
+@pytest.mark.asyncio
+async def test_handle_message_index_failure() -> None:
+    _, handle_message, ChatError = _import_modules()
+    with pytest.raises(ChatError, match="index query failed"):
+        await handle_message("hi", embedder=StubEmbedder(), index=FailingIndex())
