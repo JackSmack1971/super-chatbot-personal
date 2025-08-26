@@ -7,14 +7,17 @@ retrieval techniques and emphasizes strong security practices to address existin
 technical debt and code duplication.
 
 ## Setup Instructions
-1. Install Python 3.11 or later.
-2. Create a virtual environment and activate it:
-   `python3 -m venv .venv && source .venv/bin/activate`
+1. Install Python **3.11**.
+2. Create and activate a virtual environment:
+   `python3.11 -m venv .venv && source .venv/bin/activate`
 3. Install dependencies:
    `pip install -r requirements.txt`
 4. Configure environment variables by copying `.env.example` to `.env` and
-   providing keys such as `OPENROUTER_API_KEY`. Never commit secrets.
-5. Start the application with `python src/main.py` after configuration.
+   setting values for `OPENROUTER_API_KEY`, `PINECONE_API_KEY`, and
+   `PINECONE_ENVIRONMENT`.
+5. Environment variables are loaded securely via `src/config/env_loader.py`,
+   which validates required keys before use.
+6. Start the application with `python src/main.py` after configuration.
 
 ## Contribution Guidelines
 - Follow PEP 8 formatting with a maximum line length of 100 characters and keep
@@ -29,4 +32,3 @@ technical debt and code duplication.
   committing.
 - Use Conventional Commits for messages and ensure branches are up to date with
   `main`.
-
