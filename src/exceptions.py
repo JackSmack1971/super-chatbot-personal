@@ -25,3 +25,7 @@ class MonitoringError(Exception):
 
 class OpenRouterError(Exception):
     """Raised when OpenRouter API calls fail."""
+
+
+class CitationError(Exception):
+    """Raised when citation generation fails."""

@@ -32,3 +32,13 @@ technical debt and code duplication.
   committing.
 - Use Conventional Commits for messages and ensure branches are up to date with
   `main`.
+
+## Testing
+Run unit tests with coverage:
+```bash
+pytest --cov=src tests/
+```
+Run code quality checks:
+```bash
+python scripts/check_code_quality.py
+```
