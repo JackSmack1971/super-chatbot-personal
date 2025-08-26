@@ -10,8 +10,8 @@ technical debt and code duplication.
 1. Install Python **3.11**.
 2. Create and activate a virtual environment:
    `python3.11 -m venv .venv && source .venv/bin/activate`
-3. Install dependencies:
-   `pip install -r requirements.txt`
+3. Install dependencies with uv (install `uv` via `curl -LsSf https://astral.sh/uv/install.sh | sh` if not already installed):
+   `uv pip install -r requirements.txt`
 4. Configure environment variables by copying `.env.example` to `.env` and
    setting values for `OPENROUTER_API_KEY`, `PINECONE_API_KEY`, and
    `PINECONE_ENVIRONMENT`.
