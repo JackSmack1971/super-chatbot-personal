@@ -51,15 +51,15 @@ async def test_parse_text_files(tmp_path: Path) -> None:
     md = tmp_path / "sample.md"
     txt.write_text("hello")
     md.write_text("world")
-    assert await parse_document(txt) == "hello"
-    assert await parse_document(md) == "world"
+    assert await parse_document(txt, base_dir=tmp_path) == "hello"
+    assert await parse_document(md, base_dir=tmp_path) == "world"
 
 
 @pytest.mark.asyncio
 async def test_parse_pdf_file(tmp_path: Path) -> None:
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"")
-    text = await parse_document(pdf_path)
+    text = await parse_document(pdf_path, base_dir=tmp_path)
     assert isinstance(text, str)
 
 
@@ -68,4 +68,15 @@ async def test_parse_document_invalid(tmp_path: Path) -> None:
     invalid = tmp_path / "nope.docx"
     invalid.write_text("oops")
     with pytest.raises(DocumentParsingError):
-        await parse_document(invalid)
+        await parse_document(invalid, base_dir=tmp_path)
+
+
+@pytest.mark.asyncio
+async def test_rejects_path_traversal(tmp_path: Path) -> None:
+    base = tmp_path / "base"
+    base.mkdir()
+    outside = tmp_path / "secret.txt"
+    outside.write_text("secret")
+    traversal = base / ".." / outside.name
+    with pytest.raises(DocumentParsingError):
+        await parse_document(traversal, base_dir=base)
