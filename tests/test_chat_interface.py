@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import types
+from typing import Any
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -11,6 +12,46 @@ class DummyChatInterface:
 
 
 sys.modules["gradio"] = types.SimpleNamespace(ChatInterface=DummyChatInterface)
+
+
+class _DummyIndex:
+    def __init__(self) -> None:
+        self.vectors: dict[str, dict[str, Any]] = {}
+
+    def upsert(self, vectors):
+        for _id, vec, meta in vectors:
+            self.vectors[_id] = {"values": vec, "metadata": meta}
+
+    def query(self, vector, top_k, include_metadata):
+        matches = [
+            {"id": _id, "score": 1.0, "metadata": data["metadata"]}
+            for _id, data in list(self.vectors.items())[:top_k]
+        ]
+        return {"matches": matches}
+
+
+class _DummyPinecone:
+    def __init__(self, api_key: str) -> None:
+        self.storage = {}
+
+    def list_indexes(self):
+        return []
+
+    def create_index(self, name, dimension, metric, spec):
+        self.storage[name] = _DummyIndex()
+
+    def Index(self, name):  # noqa: N802
+        return self.storage.setdefault(name, _DummyIndex())
+
+
+class _DummySpec:
+    def __init__(self, **kwargs) -> None:
+        pass
+
+
+sys.modules["pinecone"] = types.SimpleNamespace(
+    Pinecone=_DummyPinecone, ServerlessSpec=_DummySpec
+)
 
 
 def _import_modules():
