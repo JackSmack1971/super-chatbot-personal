@@ -34,9 +34,9 @@ The retrieval strategy is informed by Dense X Retrieval research, enabling propo
    ```
 
 ## Testing Commands
-- Run tests with coverage:
+- Run tests with coverage enforcement:
   ```bash
-  pytest --cov=src tests/
+  pytest --cov=src --cov-fail-under=80 tests/
   ```
 - Run code quality checks:
   ```bash
@@ -47,7 +47,7 @@ The retrieval strategy is informed by Dense X Retrieval research, enabling propo
 - Follow PEP 8 with functions under 30 lines and full type hints.
 - Use async/await for I/O and validate inputs.
 - Ensure tests cover new code (≥80% coverage) and mock external APIs.
-- Run `python scripts/check_code_quality.py` and `pytest tests/ -v` before committing.
+- Run `python scripts/check_code_quality.py` and `pytest --cov=src --cov-fail-under=80 tests/ -v` before committing.
 - Use Conventional Commit messages and keep branches updated with `main`.
 
 ## Future Documentation
